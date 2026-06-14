@@ -1,4 +1,5 @@
 import httpx
+import json
 
 from backend.clients import DeepSeekClient, TavilyClient
 
@@ -31,13 +32,20 @@ def test_deepseek_client_posts_openai_compatible_chat_request():
         http_client=httpx.Client(transport=transport),
     )
 
-    result = client.chat("系统提示", "用户问题")
+    result = client.chat(
+        "系统提示",
+        "用户问题",
+        history=[{"role": "assistant", "content": "上一轮回答"}],
+    )
 
     assert result == "这是来自模型的讲解。"
     request = transport.requests[0]
     assert request.url == "https://api.deepseek.com/chat/completions"
     assert request.headers["authorization"] == "Bearer test-key"
-    assert b"deepseek-v4-flash" in request.content
+    body = json.loads(request.content)
+    assert body["model"] == "deepseek-v4-flash"
+    assert body["max_tokens"] == 1200
+    assert body["messages"][1] == {"role": "assistant", "content": "上一轮回答"}
 
 
 def test_tavily_client_posts_search_request():

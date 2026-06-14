@@ -47,8 +47,12 @@ def test_dashboard_supporting_data_endpoints():
     assert client.get("/api/knowledge-points?subjectId=data-structure").json()[0]["subjectId"] == "data-structure"
     assert client.get("/api/weak-points").json()[0]["level"] == "薄弱"
     assert client.get("/api/chats/recent").json()[0]["title"] == "二叉树为什么要做平衡？"
+    assert client.get("/api/chats/recent?subjectId=calculus").json()[0]["subject"] == "高等数学（下）"
     assert client.get("/api/chapters").json()[0]["title"] == "第 1 章 绪论"
+    assert client.get("/api/chapters?subjectId=calculus").json()[0]["title"] == "第 1 章 多元函数微分法"
+    assert client.get("/api/conversation?subjectId=english").json()[0]["content"].startswith("四级阅读")
     assert client.get("/api/questions").json()[0]["answer"] == "C"
+    assert client.get("/api/questions?subjectId=marxism").json()[0]["subject"] == "马克思主义基本原理"
     assert client.get("/api/mistakes").json()[0]["reason"] == "概念不清"
     assert client.get("/api/memory").json()["items"][0]["label"] == "讲解偏好"
     assert client.get("/api/sprint").json()["mustKnow"][0].startswith("Dijkstra")
@@ -76,6 +80,32 @@ def test_practice_submit_rejects_unknown_question():
     assert response.json()["detail"] == "Question not found"
 
 
+def test_generated_questions_fallback_and_submit_generated_question():
+    response = client.post(
+        "/api/questions/generate",
+        json={"subjectId": "calculus", "count": 2, "existingQuestionIds": []},
+    )
+
+    assert response.status_code == 200
+    questions = response.json()["questions"]
+    assert len(questions) == 2
+    assert questions[0]["subject"] == "高等数学（下）"
+
+    submit_response = client.post(
+        "/api/practice/submit",
+        json={
+            "questionId": "ai-test",
+            "answer": questions[0]["answer"],
+            "expected": questions[0]["answer"],
+            "analysis": questions[0]["analysis"],
+            "questionType": questions[0]["type"],
+        },
+    )
+
+    assert submit_response.status_code == 200
+    assert submit_response.json()["correct"] is True
+
+
 def test_diagnosis_answer_returns_mock_judgement():
     response = client.post(
         "/api/diagnosis/answer",
@@ -91,7 +121,11 @@ def test_diagnosis_answer_returns_mock_judgement():
 def test_chat_uses_safe_fallback_without_external_key():
     response = client.post(
         "/api/chat",
-        json={"message": "讲讲 Dijkstra", "subjectId": "data-structure"},
+        json={
+            "message": "讲讲 Dijkstra",
+            "subjectId": "data-structure",
+            "history": [{"role": "user", "content": "我不懂最短路径"}],
+        },
     )
 
     assert response.status_code == 200

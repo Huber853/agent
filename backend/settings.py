@@ -38,4 +38,5 @@ def load_env_files() -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+            clean_key = key.strip().lstrip("\ufeff")
+            os.environ.setdefault(clean_key, value.strip().strip('"').strip("'"))

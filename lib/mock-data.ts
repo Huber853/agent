@@ -145,6 +145,9 @@ export const weakPoints: KnowledgePoint[] = [
   { id: "kp3", title: "重积分的换元与坐标变换", level: "薄弱", mastery: 28, subjectId: "calculus" },
   { id: "kp4", title: "幂级数收敛半径求解", level: "薄弱", mastery: 35, subjectId: "calculus" },
   { id: "kp5", title: "长难句翻译技巧", level: "薄弱", mastery: 52, subjectId: "english" },
+  { id: "kp6", title: "听力长对话定位", level: "薄弱", mastery: 58, subjectId: "english" },
+  { id: "kp7", title: "辩证法三大规律辨析", level: "薄弱", mastery: 46, subjectId: "marxism" },
+  { id: "kp8", title: "剩余价值生产方式", level: "薄弱", mastery: 42, subjectId: "marxism" },
 ]
 
 export const knowledgePoints: KnowledgePoint[] = [
@@ -156,13 +159,45 @@ export const knowledgePoints: KnowledgePoint[] = [
   { id: "ds-6", title: "图的最短路径（Dijkstra / Floyd）", level: "薄弱", mastery: 32, subjectId: "data-structure" },
   { id: "ds-7", title: "排序算法复杂度与稳定性", level: "常考", mastery: 70, subjectId: "data-structure" },
   { id: "ds-8", title: "哈希表与冲突解决", level: "必会", mastery: 76, subjectId: "data-structure" },
+  { id: "cal-1", title: "多元函数极限与连续", level: "必会", mastery: 62, subjectId: "calculus" },
+  { id: "cal-2", title: "偏导数与全微分", level: "必会", mastery: 58, subjectId: "calculus" },
+  { id: "cal-3", title: "多元复合函数求导", level: "常考", mastery: 54, subjectId: "calculus" },
+  { id: "cal-4", title: "二重积分计算", level: "必会", mastery: 48, subjectId: "calculus" },
+  { id: "cal-5", title: "重积分的换元与坐标变换", level: "薄弱", mastery: 28, subjectId: "calculus" },
+  { id: "cal-6", title: "曲线积分与格林公式", level: "常考", mastery: 38, subjectId: "calculus" },
+  { id: "cal-7", title: "数项级数敛散性", level: "常考", mastery: 44, subjectId: "calculus" },
+  { id: "cal-8", title: "幂级数收敛半径求解", level: "薄弱", mastery: 35, subjectId: "calculus" },
+  { id: "eng-1", title: "听力短篇新闻关键词", level: "必会", mastery: 76, subjectId: "english" },
+  { id: "eng-2", title: "长篇阅读匹配策略", level: "常考", mastery: 82, subjectId: "english" },
+  { id: "eng-3", title: "仔细阅读因果与转折定位", level: "必会", mastery: 78, subjectId: "english" },
+  { id: "eng-4", title: "核心词汇同义替换", level: "必会", mastery: 70, subjectId: "english" },
+  { id: "eng-5", title: "长难句翻译技巧", level: "薄弱", mastery: 52, subjectId: "english" },
+  { id: "eng-6", title: "作文模板与高级句式", level: "常考", mastery: 73, subjectId: "english" },
+  { id: "eng-7", title: "段落主旨题", level: "常考", mastery: 80, subjectId: "english" },
+  { id: "eng-8", title: "听力长对话定位", level: "薄弱", mastery: 58, subjectId: "english" },
+  { id: "marx-1", title: "物质与意识的辩证关系", level: "必会", mastery: 66, subjectId: "marxism" },
+  { id: "marx-2", title: "联系与发展的观点", level: "必会", mastery: 62, subjectId: "marxism" },
+  { id: "marx-3", title: "矛盾分析法", level: "常考", mastery: 58, subjectId: "marxism" },
+  { id: "marx-4", title: "实践与认识的关系", level: "必会", mastery: 64, subjectId: "marxism" },
+  { id: "marx-5", title: "社会存在与社会意识", level: "常考", mastery: 56, subjectId: "marxism" },
+  { id: "marx-6", title: "商品二因素与劳动二重性", level: "常考", mastery: 50, subjectId: "marxism" },
+  { id: "marx-7", title: "辩证法三大规律辨析", level: "薄弱", mastery: 46, subjectId: "marxism" },
+  { id: "marx-8", title: "剩余价值生产方式", level: "薄弱", mastery: 42, subjectId: "marxism" },
 ]
 
 export const recentChats = [
   { id: "c1", title: "二叉树为什么要做平衡？", subject: "数据结构", time: "10 分钟前", preview: "AVL 树通过旋转维持左右子树高度差..." },
   { id: "c2", title: "Dijkstra 和 Floyd 区别", subject: "数据结构", time: "2 小时前", preview: "前者求单源最短路，后者求多源..." },
-  { id: "c3", title: "重积分什么时候用极坐标？", subject: "高等数学（下）", time: "昨天", preview: "当积分区域是圆 / 扇形时优先考虑..." },
-  { id: "c4", title: "四级写作怎么提升档次？", subject: "大学英语四级", time: "2 天前", preview: "用高级句型替换简单句，注意衔接词..." },
+  { id: "c3", title: "AVL 的 LL / LR 怎么区分？", subject: "数据结构", time: "昨天", preview: "先看失衡结点，再看插入路径方向..." },
+  { id: "c4", title: "重积分什么时候用极坐标？", subject: "高等数学（下）", time: "12 分钟前", preview: "当积分区域是圆 / 扇形时优先考虑..." },
+  { id: "c5", title: "偏导数和全微分有什么关系？", subject: "高等数学（下）", time: "1 小时前", preview: "全微分存在比偏导存在要求更强..." },
+  { id: "c6", title: "幂级数收敛半径怎么求？", subject: "高等数学（下）", time: "昨天", preview: "优先用比值法或根值法处理系数..." },
+  { id: "c7", title: "四级写作怎么提升档次？", subject: "大学英语四级", time: "20 分钟前", preview: "用高级句型替换简单句，注意衔接词..." },
+  { id: "c8", title: "长篇阅读匹配题如何提速？", subject: "大学英语四级", time: "3 小时前", preview: "先划定位词，再匹配段落主旨..." },
+  { id: "c9", title: "翻译题怎么处理定语从句？", subject: "大学英语四级", time: "昨天", preview: "先拆主干，再处理修饰成分..." },
+  { id: "c10", title: "矛盾普遍性和特殊性怎么区分？", subject: "马克思主义基本原理", time: "30 分钟前", preview: "普遍性说明矛盾无处不在，特殊性强调具体分析..." },
+  { id: "c11", title: "实践为什么是认识的基础？", subject: "马克思主义基本原理", time: "2 小时前", preview: "实践提供认识来源、动力、检验标准和目的..." },
+  { id: "c12", title: "剩余价值两种生产方式", subject: "马克思主义基本原理", time: "昨天", preview: "绝对剩余价值靠延长劳动时间，相对剩余价值靠提高生产率..." },
 ]
 
 export const conversation: ChatMessage[] = [
@@ -206,15 +241,130 @@ export const conversation: ChatMessage[] = [
   },
 ]
 
+export const conversationBySubject: Record<string, ChatMessage[]> = {
+  "data-structure": conversation,
+  calculus: [
+    {
+      id: "cal-m1",
+      role: "user",
+      content: "我总分不清二重积分什么时候用直角坐标、什么时候用极坐标。",
+    },
+    {
+      id: "cal-m2",
+      role: "assistant",
+      kind: "text",
+      content:
+        "先看积分区域的形状：如果边界里出现圆、圆环、扇形，或者被积函数含有 x²+y²，优先考虑极坐标；如果区域由直线、简单上下限围成，直角坐标通常更直接。",
+    },
+    {
+      id: "cal-m3",
+      role: "assistant",
+      kind: "knowledge",
+      content:
+        "极坐标换元时一定不要漏雅可比因子：x = r cosθ，y = r sinθ，dxdy = r drdθ。很多错题不是思路错，而是漏了这个 r。",
+    },
+    {
+      id: "cal-m4",
+      role: "assistant",
+      kind: "example",
+      content:
+        "例题：计算区域 x²+y²≤1 上的 ∬(x²+y²)dxdy。\n换成极坐标后为 ∫₀²π∫₀¹ r²·r drdθ = 2π·1/4 = π/2。",
+    },
+  ],
+  english: [
+    {
+      id: "eng-m1",
+      role: "user",
+      content: "四级阅读我经常看懂了大概意思，但选项还是容易错。",
+    },
+    {
+      id: "eng-m2",
+      role: "assistant",
+      kind: "text",
+      content:
+        "四级阅读不要只凭“感觉相近”选答案。先定位题干关键词，再回原文找同义替换，最后排除偷换范围、因果倒置和无中生有的选项。",
+    },
+    {
+      id: "eng-m3",
+      role: "assistant",
+      kind: "knowledge",
+      content:
+        "常见正确答案不会照抄原文，而是同义改写。比如 improve 可能换成 enhance，because 可能换成 result from / lead to。",
+    },
+    {
+      id: "eng-m4",
+      role: "assistant",
+      kind: "example",
+      content:
+        "例：原文说 The policy helps reduce household costs。选项里如果出现 It lowers family expenses，就是同义替换；如果说 It increases family income，就偷换了概念。",
+    },
+  ],
+  marxism: [
+    {
+      id: "marx-m1",
+      role: "user",
+      content: "马原里矛盾普遍性和特殊性总是混在一起。",
+    },
+    {
+      id: "marx-m2",
+      role: "assistant",
+      kind: "text",
+      content:
+        "可以这样记：普遍性回答“有没有矛盾”——任何事物、任何过程都有矛盾；特殊性回答“是什么矛盾”——不同事物、同一事物不同阶段的矛盾各不相同。",
+    },
+    {
+      id: "marx-m3",
+      role: "assistant",
+      kind: "knowledge",
+      content:
+        "考试常用表达：坚持矛盾普遍性要求承认矛盾、分析矛盾；坚持矛盾特殊性要求具体问题具体分析。",
+    },
+    {
+      id: "marx-m4",
+      role: "assistant",
+      kind: "example",
+      content:
+        "例：学习压力人人都有，这是普遍性；你薄弱在高数重积分、别人薄弱在英语听力，这是特殊性，所以复习方案不能完全照搬。",
+    },
+  ],
+}
+
 export const chapters = [
-  { id: "ch1", title: "第 1 章 绪论", done: true },
-  { id: "ch2", title: "第 2 章 线性表", done: true },
-  { id: "ch3", title: "第 3 章 栈与队列", done: true },
-  { id: "ch4", title: "第 4 章 树与二叉树", done: false, active: true },
-  { id: "ch5", title: "第 5 章 图", done: false },
-  { id: "ch6", title: "第 6 章 查找", done: false },
-  { id: "ch7", title: "第 7 章 排序", done: false },
+  { id: "ds-ch1", title: "第 1 章 绪论", done: true, items: ["时间/空间复杂度", "算法分析基础"] },
+  { id: "ds-ch2", title: "第 2 章 线性表", done: true, items: ["顺序表", "单链表 / 双链表", "循环链表"] },
+  { id: "ds-ch3", title: "第 3 章 栈与队列", done: true, items: ["栈的应用", "循环队列", "表达式求值"] },
+  { id: "ds-ch4", title: "第 4 章 树与二叉树", done: false, active: true, items: ["遍历", "线索二叉树", "哈夫曼树", "AVL 树"] },
+  { id: "ds-ch5", title: "第 5 章 图", done: false, items: ["存储结构", "遍历", "最短路径", "最小生成树", "拓扑排序"] },
+  { id: "ds-ch6", title: "第 6 章 查找", done: false, items: ["折半查找", "二叉排序树", "哈希表"] },
+  { id: "ds-ch7", title: "第 7 章 排序", done: false, items: ["插入/交换/选择", "归并/基数", "复杂度对比"] },
 ]
+
+export const chaptersBySubject: Record<string, typeof chapters> = {
+  "data-structure": chapters,
+  calculus: [
+    { id: "cal-ch1", title: "第 1 章 多元函数微分法", done: true, items: ["多元函数极限", "偏导数", "全微分"] },
+    { id: "cal-ch2", title: "第 2 章 多元复合函数求导", done: true, items: ["链式法则", "隐函数求导", "方向导数"] },
+    { id: "cal-ch3", title: "第 3 章 二重积分", done: false, active: true, items: ["积分区域", "换序", "极坐标"] },
+    { id: "cal-ch4", title: "第 4 章 三重积分", done: false, items: ["柱面坐标", "球面坐标", "对称性"] },
+    { id: "cal-ch5", title: "第 5 章 曲线与曲面积分", done: false, items: ["第一类积分", "第二类积分", "格林公式"] },
+    { id: "cal-ch6", title: "第 6 章 无穷级数", done: false, items: ["数项级数", "幂级数", "泰勒展开"] },
+  ],
+  english: [
+    { id: "eng-ch1", title: "模块 1 听力", done: true, items: ["短篇新闻", "长对话", "听力篇章"] },
+    { id: "eng-ch2", title: "模块 2 词汇与语法", done: true, items: ["核心词汇", "同义替换", "长难句"] },
+    { id: "eng-ch3", title: "模块 3 阅读理解", done: false, active: true, items: ["选词填空", "段落匹配", "仔细阅读"] },
+    { id: "eng-ch4", title: "模块 4 翻译", done: false, items: ["句子拆分", "文化表达", "定语处理"] },
+    { id: "eng-ch5", title: "模块 5 写作", done: false, items: ["议论文结构", "高级句式", "连接词"] },
+  ],
+  marxism: [
+    { id: "marx-ch1", title: "第 1 章 马克思主义导论", done: true, items: ["理论来源", "鲜明特征", "当代价值"] },
+    { id: "marx-ch2", title: "第 2 章 世界的物质性", done: true, items: ["物质观", "意识观", "实践观"] },
+    { id: "marx-ch3", title: "第 3 章 唯物辩证法", done: false, active: true, items: ["联系发展", "三大规律", "矛盾分析法"] },
+    { id: "marx-ch4", title: "第 4 章 认识论", done: false, items: ["实践与认识", "真理与价值", "认识过程"] },
+    { id: "marx-ch5", title: "第 5 章 唯物史观", done: false, items: ["社会存在", "社会意识", "人民群众"] },
+    { id: "marx-ch6", title: "第 6 章 政治经济学", done: false, items: ["商品二因素", "剩余价值", "资本积累"] },
+  ],
+}
 
 export const researchSources = [
   {
@@ -292,6 +442,88 @@ export const questions: Question[] = [
       "Dijkstra 求单源最短路，要求非负权，堆优化 O((V+E)logV)；Floyd 求多源（任意两点）最短路，可处理负权（无负环），基于动态规划，复杂度 O(V³)。",
     analysis:
       "评分点：①单源 vs 多源；②权值约束；③复杂度；④算法思想（贪心 vs 动态规划）。答出三点即可得大部分分数。",
+  },
+  {
+    id: "q4",
+    type: "选择题",
+    difficulty: "中等",
+    point: "重积分换元",
+    subject: "高等数学（下）",
+    content: "二重积分从直角坐标换成极坐标时，面积元 dxdy 应变为：",
+    options: [
+      { key: "A", text: "drdθ" },
+      { key: "B", text: "rdrdθ" },
+      { key: "C", text: "r²drdθ" },
+      { key: "D", text: "cosθdrdθ" },
+    ],
+    answer: "B",
+    analysis:
+      "极坐标变换 x = rcosθ，y = rsinθ 的雅可比行列式绝对值为 r，所以 dxdy = rdrdθ。漏掉 r 是重积分换元最常见错误。",
+  },
+  {
+    id: "q5",
+    type: "计算题",
+    difficulty: "中等",
+    point: "幂级数",
+    subject: "高等数学（下）",
+    content: "求幂级数 ∑(n=1 到 ∞) n xⁿ 的收敛半径。",
+    answer: "R = 1",
+    analysis:
+      "设 a_n = n，用比值法：lim |a_n/a_{n+1}| = lim n/(n+1) = 1，因此收敛半径 R = 1。",
+  },
+  {
+    id: "q6",
+    type: "选择题",
+    difficulty: "中等",
+    point: "阅读理解",
+    subject: "大学英语四级",
+    content: "四级仔细阅读中，最可靠的解题顺序是：",
+    options: [
+      { key: "A", text: "先看选项，再凭印象选择" },
+      { key: "B", text: "先读题干关键词，再回原文定位并比对同义替换" },
+      { key: "C", text: "全文逐字翻译后再做题" },
+      { key: "D", text: "只选择含有原文原词最多的选项" },
+    ],
+    answer: "B",
+    analysis:
+      "四级阅读考查定位与同义替换。原词最多不一定正确，常见干扰项会偷换范围、因果或态度。",
+  },
+  {
+    id: "q7",
+    type: "简答题",
+    difficulty: "中等",
+    point: "写作",
+    subject: "大学英语四级",
+    content: "写出 2 个可以提升四级作文层次的连接表达，并说明适用场景。",
+    answer: "例如：Moreover 表示递进；However 表示转折；Therefore 表示结果。",
+    analysis:
+      "评分重点是连接词是否准确服务于逻辑关系。不要堆砌高级词，递进、转折、因果要用对。",
+  },
+  {
+    id: "q8",
+    type: "判断题",
+    difficulty: "简单",
+    point: "矛盾分析法",
+    subject: "马克思主义基本原理",
+    content: "矛盾特殊性要求我们坚持具体问题具体分析。",
+    options: [
+      { key: "T", text: "正确" },
+      { key: "F", text: "错误" },
+    ],
+    answer: "T",
+    analysis:
+      "矛盾特殊性强调不同事物、同一事物不同阶段的矛盾各不相同，因此方法论要求是具体问题具体分析。",
+  },
+  {
+    id: "q9",
+    type: "简答题",
+    difficulty: "中等",
+    point: "认识论",
+    subject: "马克思主义基本原理",
+    content: "简述为什么实践是认识的基础。",
+    answer: "实践是认识的来源、动力、目的，也是检验认识真理性的唯一标准。",
+    analysis:
+      "答题时按四点展开最稳：来源、动力、目的、检验标准。每点配一句解释即可形成完整简答。",
   },
 ]
 

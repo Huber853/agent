@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import type { Question } from "@/lib/mock-data"
-import { postJson, type PracticeResult } from "@/lib/api"
+import { postJson, type PracticeResult, type QuestionGenerateResult } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -20,7 +20,14 @@ type AnswerRecord = {
   correct: boolean
 }
 
-export function PracticeRunner({ questions }: { questions: Question[] }) {
+export function PracticeRunner({
+  questions,
+  subjectId,
+}: {
+  questions: Question[]
+  subjectId?: string
+}) {
+  const [questionList, setQuestionList] = useState<Question[]>(questions)
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<string>("")
   const [shortText, setShortText] = useState("")
@@ -29,10 +36,11 @@ export function PracticeRunner({ questions }: { questions: Question[] }) {
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
-  const q = questions[index]
+  const q = questionList[index]
   const isChoice = q.type === "选择题" || q.type === "判断题"
-  const total = questions.length
+  const total = questionList.length
 
   async function submit() {
     if (isChoice && !selected) {
@@ -54,7 +62,13 @@ export function PracticeRunner({ questions }: { questions: Question[] }) {
     }
     const apiResult = await postJson<PracticeResult>(
       "/api/practice/submit",
-      { questionId: q.id, answer: given },
+      {
+        questionId: q.id,
+        answer: given,
+        expected: q.answer,
+        analysis: q.analysis,
+        questionType: q.type,
+      },
       fallbackResult,
     )
     setResult(apiResult)
@@ -83,6 +97,38 @@ export function PracticeRunner({ questions }: { questions: Question[] }) {
     setRecords([])
     setFinished(false)
     setResult(null)
+  }
+
+  async function generateMore() {
+    setGenerating(true)
+    const fallbackQuestions = questionList.map((question) => ({
+      ...question,
+      id: `local-${question.id}-${Date.now()}`,
+    })).slice(0, 3)
+    const result = await postJson<QuestionGenerateResult>(
+      "/api/questions/generate",
+      {
+        subjectId,
+        count: 5,
+        focus: q?.point,
+        existingQuestionIds: questionList.map((question) => question.id),
+      },
+      { questions: fallbackQuestions },
+    )
+    if (result.questions.length === 0) {
+      toast.error("暂时没有生成新题")
+    } else {
+      const nextIndex = questionList.length
+      setQuestionList((prev) => [...prev, ...result.questions])
+      setIndex(nextIndex)
+      setSelected("")
+      setShortText("")
+      setRevealed(false)
+      setResult(null)
+      setFinished(false)
+      toast.success(`已生成 ${result.questions.length} 道新题`)
+    }
+    setGenerating(false)
   }
 
   if (finished) {
@@ -127,8 +173,9 @@ export function PracticeRunner({ questions }: { questions: Question[] }) {
                 <RotateCcw data-icon="inline-start" />
                 再练一组
               </Button>
-              <Button className="flex-1" onClick={() => toast.success("已加入错题本并更新计划")}>
-                查看错题本
+              <Button className="flex-1" disabled={generating} onClick={() => void generateMore()}>
+                <Sparkles data-icon="inline-start" />
+                {generating ? "生成中" : "AI 再生成"}
               </Button>
             </div>
           </CardContent>
@@ -252,7 +299,11 @@ export function PracticeRunner({ questions }: { questions: Question[] }) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button variant="outline" disabled={generating || submitting} onClick={() => void generateMore()}>
+          <Sparkles data-icon="inline-start" />
+          {generating ? "生成中" : "AI 生成新题"}
+        </Button>
         {!revealed ? (
           <Button disabled={submitting} onClick={() => void submit()}>
             {submitting ? "批改中" : "提交作答"}

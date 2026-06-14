@@ -28,19 +28,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import {
-} from "@/lib/mock-data"
 import { api } from "@/lib/api"
-
-const outline = [
-  { chapter: "第 1 章 绪论", items: ["时间/空间复杂度", "算法分析基础"] },
-  { chapter: "第 2 章 线性表", items: ["顺序表", "单链表 / 双链表", "循环链表"] },
-  { chapter: "第 3 章 栈与队列", items: ["栈的应用", "循环队列", "表达式求值"] },
-  { chapter: "第 4 章 树与二叉树", items: ["遍历", "线索二叉树", "哈夫曼树", "AVL 树"] },
-  { chapter: "第 5 章 图", items: ["存储结构", "遍历", "最短路径", "最小生成树", "拓扑排序"] },
-  { chapter: "第 6 章 查找", items: ["折半查找", "二叉排序树", "哈希表"] },
-  { chapter: "第 7 章 排序", items: ["插入/交换/选择", "归并/基数", "复杂度对比"] },
-]
 
 function PointList({ items }: { items: { id: string; title: string; mastery: number; level: string }[] }) {
   if (items.length === 0) {
@@ -70,11 +58,12 @@ export default async function SubjectDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [subject, knowledgePoints, weakPoints, recentChats] = await Promise.all([
+  const [subject, knowledgePoints, weakPoints, recentChats, chapters] = await Promise.all([
     api.subject(id),
     api.knowledgePoints(id),
     api.weakPoints(id),
-    api.recentChats(),
+    api.recentChats(id),
+    api.chapters(id),
   ])
 
   const allPoints = [
@@ -87,8 +76,8 @@ export default async function SubjectDetailPage({
   const weak = allPoints.filter((p) => p.level === "薄弱")
 
   const actions = [
-    { title: "开始对话学习", href: "/learn", icon: MessagesSquare, primary: true },
-    { title: "生成练习题", href: "/practice", icon: PencilRuler },
+    { title: "开始对话学习", href: `/learn?subjectId=${id}`, icon: MessagesSquare, primary: true },
+    { title: "生成练习题", href: `/practice?subjectId=${id}`, icon: PencilRuler },
     { title: "查看错题本", href: "/mistakes", icon: NotebookPen },
     { title: "考前冲刺", href: "/sprint", icon: Zap },
   ]
@@ -99,7 +88,7 @@ export default async function SubjectDetailPage({
         title={`${subject.emoji} ${subject.name}`}
         description="科目复习中心"
         actions={
-          <Button render={<Link href="/learn" />}>
+          <Button render={<Link href={`/learn?subjectId=${id}`} />}>
             <MessagesSquare data-icon="inline-start" />
             继续学习
           </Button>
@@ -173,13 +162,13 @@ export default async function SubjectDetailPage({
               <CardDescription>{subject.scope}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Accordion defaultValue={["第 4 章 树与二叉树"]}>
-                {outline.map((o) => (
-                  <AccordionItem key={o.chapter} value={o.chapter}>
-                    <AccordionTrigger>{o.chapter}</AccordionTrigger>
+              <Accordion defaultValue={chapters.find((chapter) => chapter.active)?.title ? [chapters.find((chapter) => chapter.active)!.title] : undefined}>
+                {chapters.map((chapter) => (
+                  <AccordionItem key={chapter.id} value={chapter.title}>
+                    <AccordionTrigger>{chapter.title}</AccordionTrigger>
                     <AccordionContent>
                       <div className="flex flex-wrap gap-1.5">
-                        {o.items.map((it) => (
+                        {(chapter.items ?? []).map((it) => (
                           <Badge key={it} variant="outline">
                             {it}
                           </Badge>

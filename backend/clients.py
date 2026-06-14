@@ -14,17 +14,32 @@ class DeepSeekClient:
         self.model = model
         self.http_client = http_client or httpx.Client(timeout=20)
 
-    def chat(self, system_prompt: str, user_message: str) -> str:
+    def chat(
+        self,
+        system_prompt: str,
+        user_message: str,
+        max_tokens: int = 1200,
+        history: list[dict[str, str]] | None = None,
+    ) -> str:
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            messages.extend(
+                {
+                    "role": message.get("role", "user"),
+                    "content": message.get("content", ""),
+                }
+                for message in history
+                if message.get("role") in {"user", "assistant"} and message.get("content")
+            )
+        messages.append({"role": "user", "content": user_message})
         response = self.http_client.post(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
                 "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ],
+                "messages": messages,
                 "temperature": 0.3,
+                "max_tokens": max_tokens,
             },
         )
         response.raise_for_status()

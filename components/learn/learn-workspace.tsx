@@ -148,7 +148,8 @@ export function LearnWorkspace({
       role: "user",
       content: text,
     }
-    setMessages((m) => [...m, userMsg])
+    const nextMessages = [...messages, userMsg]
+    setMessages(nextMessages)
     setInput("")
     setSending(true)
     const fallbackReply: ChatMessage = cannedReply[text]
@@ -160,13 +161,18 @@ export function LearnWorkspace({
           ...fallbackChat(text),
           id: nextMessageId("a"),
         }
-    const reply = cannedReply[text]
-      ? fallbackReply
-      : await postJson<ChatMessage>(
-          "/api/chat",
-          { message: text, subjectId: subject.id },
-          fallbackReply,
-        )
+    const reply = await postJson<ChatMessage>(
+      "/api/chat",
+      {
+        message: text,
+        subjectId: subject.id,
+        history: nextMessages.slice(-8).map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      },
+      fallbackReply,
+    )
     setMessages((m) => [...m, reply])
     setSending(false)
   }

@@ -1,6 +1,8 @@
 import {
   chapters,
+  chaptersBySubject,
   conversation,
+  conversationBySubject,
   getSubject as getMockSubject,
   knowledgePoints,
   memoryItems,
@@ -44,6 +46,7 @@ export type Chapter = {
   title: string
   done: boolean
   active?: boolean
+  items?: string[]
 }
 
 export type ResearchData = {
@@ -68,6 +71,10 @@ export type PracticeResult = {
   answer: string
   expected: string
   analysis: string
+}
+
+export type QuestionGenerateResult = {
+  questions: Question[]
 }
 
 export type DiagnosisResult = {
@@ -126,10 +133,30 @@ export const api = {
         ? knowledgePoints.filter((p) => p.subjectId === subjectId)
         : knowledgePoints,
     ),
-  recentChats: () => getJson<RecentChat[]>("/api/chats/recent", recentChats),
-  chapters: () => getJson<Chapter[]>("/api/chapters", chapters),
-  conversation: () => getJson<ChatMessage[]>("/api/conversation", conversation),
-  questions: () => getJson<Question[]>("/api/questions", questions),
+  recentChats: (subjectId?: string) => {
+    const subjectName = subjectId ? getMockSubject(subjectId).name : undefined
+    return getJson<RecentChat[]>(
+      subjectId ? `/api/chats/recent?subjectId=${subjectId}` : "/api/chats/recent",
+      subjectName ? recentChats.filter((chat) => chat.subject === subjectName) : recentChats,
+    )
+  },
+  chapters: (subjectId?: string) =>
+    getJson<Chapter[]>(
+      subjectId ? `/api/chapters?subjectId=${subjectId}` : "/api/chapters",
+      subjectId ? (chaptersBySubject[subjectId] ?? chapters) : chapters,
+    ),
+  conversation: (subjectId?: string) =>
+    getJson<ChatMessage[]>(
+      subjectId ? `/api/conversation?subjectId=${subjectId}` : "/api/conversation",
+      subjectId ? (conversationBySubject[subjectId] ?? conversation) : conversation,
+    ),
+  questions: (subjectId?: string) => {
+    const subjectName = subjectId ? getMockSubject(subjectId).name : undefined
+    return getJson<Question[]>(
+      subjectId ? `/api/questions?subjectId=${subjectId}` : "/api/questions",
+      subjectName ? questions.filter((question) => question.subject === subjectName) : questions,
+    )
+  },
   mistakes: () => getJson<Mistake[]>("/api/mistakes", mistakes),
   memory: () =>
     getJson<MemoryData>("/api/memory", {
