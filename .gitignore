@@ -21,6 +21,8 @@ backend/.env.*.local
 node_modules
 .next/
 .pytest_cache/
+__pycache__/
+*.pyc
 *.log
 *.tsbuildinfo
 .DS_Store
