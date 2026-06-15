@@ -24,6 +24,7 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field"
+import { api } from "@/lib/api"
 
 const questionTypeOptions = [
   "选择题",
@@ -39,11 +40,39 @@ export function NewSubjectForm() {
   const [base, setBase] = useState<string[]>(["一般"])
   const [goal, setGoal] = useState<string[]>(["稳过"])
   const [types, setTypes] = useState<string[]>(["选择题", "简答题"])
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    toast.success("科目已创建，正在进入掌握情况诊断…")
-    setTimeout(() => router.push("/diagnosis"), 600)
+    const form = new FormData(e.currentTarget)
+    const name = String(form.get("name") ?? "").trim()
+    const examDate = String(form.get("examDate") ?? "")
+    const dailyMinutes = Number(form.get("dailyMinutes") ?? 60)
+    const scope = String(form.get("scope") ?? "").trim()
+    if (!name || !examDate) {
+      toast.error("请填写科目名称和考试日期")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const result = await api.createSubject({
+        name,
+        examDate,
+        dailyMinutes,
+        base: base[0] ?? "一般",
+        goal: goal[0] ?? "稳过",
+        scope,
+        questionTypes: types.length ? types : ["选择题", "简答题"],
+      })
+      toast.success("科目已创建，目录和知识点已生成")
+      router.push(`/subjects/${result.subject.id}`)
+      router.refresh()
+    } catch {
+      toast.error("创建失败，请稍后重试")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -57,20 +86,21 @@ export function NewSubjectForm() {
         </CardHeader>
         <CardContent>
           <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="name">科目名称</FieldLabel>
-              <Input id="name" placeholder="例如：数据结构、高等数学、大学英语四级" required />
+              <Field>
+                <FieldLabel htmlFor="name">科目名称</FieldLabel>
+              <Input id="name" name="name" placeholder="例如：数据结构、高等数学、大学英语四级" required />
             </Field>
 
             <div className="grid gap-6 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="date">考试日期</FieldLabel>
-                <Input id="date" type="date" required />
+                <Input id="date" name="examDate" type="date" required />
               </Field>
               <Field>
                 <FieldLabel htmlFor="minutes">每天可复习时间（分钟）</FieldLabel>
                 <Input
                   id="minutes"
+                  name="dailyMinutes"
                   type="number"
                   min={10}
                   step={10}
@@ -116,6 +146,7 @@ export function NewSubjectForm() {
               <FieldLabel htmlFor="scope">考试范围</FieldLabel>
               <Textarea
                 id="scope"
+                name="scope"
                 rows={3}
                 placeholder="例如：第 1-7 章，重点为树、图、排序；不考第 8 章"
               />
@@ -140,12 +171,12 @@ export function NewSubjectForm() {
             </FieldSet>
 
             <Field orientation="horizontal" className="justify-end">
-              <Button type="button" variant="ghost" onClick={() => router.back()}>
+              <Button type="button" variant="ghost" disabled={submitting} onClick={() => router.back()}>
                 取消
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 <Sparkles data-icon="inline-start" />
-                创建并开始诊断
+                {submitting ? "生成中" : "创建并生成目录"}
               </Button>
             </Field>
           </FieldGroup>

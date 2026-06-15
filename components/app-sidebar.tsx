@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { GraduationCap } from "lucide-react"
 
 import { mainNav, footerNav } from "@/lib/nav"
-import { currentSubjectId, getSubject, type Subject } from "@/lib/mock-data"
+import { type Subject } from "@/lib/mock-data"
 import {
   Sidebar,
   SidebarContent,
@@ -26,7 +26,6 @@ function isActiveHref(pathname: string, href: string) {
 
 export function AppSidebar({ subjects }: { subjects: Subject[] }) {
   const pathname = usePathname()
-  const current = subjects.find((s) => s.id === currentSubjectId) ?? getSubject(currentSubjectId)
 
   return (
     <Sidebar collapsible="icon">
@@ -83,7 +82,7 @@ export function AppSidebar({ subjects }: { subjects: Subject[] }) {
                 >
                   <span className="text-base leading-none">{s.emoji}</span>
                   <span className="truncate">{s.name}</span>
-                  {s.id === current.id ? (
+                  {pathname.includes(`/subjects/${s.id}`) || pathname.includes(`subjectId=${s.id}`) ? (
                     <span className="ml-auto size-1.5 rounded-full bg-primary" />
                   ) : null}
                 </SidebarMenuButton>

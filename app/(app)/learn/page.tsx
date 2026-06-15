@@ -5,12 +5,14 @@ import { currentSubjectId } from "@/lib/mock-data"
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ subjectId?: string }>
+  searchParams?: Promise<{ subjectId?: string; chapterId?: string }>
 }) {
-  const subjectId = (await searchParams)?.subjectId ?? currentSubjectId
+  const params = await searchParams
+  const subjectId = params?.subjectId ?? currentSubjectId
+  const chapterId = params?.chapterId
   const [subject, messages, chapters, recentChats, memory] = await Promise.all([
     api.subject(subjectId),
-    api.conversation(subjectId),
+    api.conversationForChapter(subjectId, chapterId),
     api.chapters(subjectId),
     api.recentChats(subjectId),
     api.memory(),
@@ -21,6 +23,7 @@ export default async function LearnPage({
       subject={subject}
       initialMessages={messages}
       chapters={chapters}
+      selectedChapterId={chapterId}
       recentChats={recentChats}
       memoryItems={memory.items}
     />

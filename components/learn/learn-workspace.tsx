@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import {
   Bot,
   User,
@@ -40,21 +41,34 @@ const quickPrompts = [
   "总结这个知识点",
 ]
 
-const cannedReply: Record<string, ChatMessage> = {
-  出几道题: {
-    id: "auto-ex",
-    role: "assistant",
-    kind: "example",
-    content:
-      "练习：已知有向图 A→B=2, B→C=3, A→C=10，用 Dijkstra 求 A 到 C 的最短距离是多少？\n（提示：比较直达与中转路径）",
-  },
-  总结这个知识点: {
-    id: "auto-sum",
-    role: "assistant",
-    kind: "knowledge",
-    content:
-      "一句话总结：Dijkstra = 非负权单源最短路 + 贪心地每次确定当前最近的点 + 松弛邻居；堆优化后 O((V+E)logV)。",
-  },
+function subjectFallbackReply(text: string, subject: Subject, id: string): ChatMessage {
+  if (text === "出几道题") {
+    return {
+      id,
+      role: "assistant",
+      kind: "example",
+      content:
+        `我先围绕「${subject.name}」给你一组兜底练习，重点覆盖：${subject.scope}。\n\n` +
+        "1. 说出本章最容易混淆的一个概念，并写出它的适用条件。\n" +
+        "2. 根据一个典型题，先判断考点，再列出 2 个解题步骤。\n" +
+        "3. 写出你最不确定的一步，我再继续追问和纠正。\n\n" +
+        "如果网络/API 恢复，我会直接生成更完整的 3 道带答案解析的题。",
+    }
+  }
+  if (text === "总结这个知识点") {
+    return {
+      id,
+      role: "assistant",
+      kind: "knowledge",
+      content:
+        `当前科目是「${subject.name}」，复习范围是：${subject.scope}。\n\n` +
+        "总结时先抓三件事：它解决什么问题、使用条件是什么、考试会怎么变形。再把公式、步骤或关键词压缩成一张清单，最后用一道小题验证。",
+    }
+  }
+  return {
+    ...fallbackChat(text),
+    id,
+  }
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -118,12 +132,14 @@ export function LearnWorkspace({
   subject,
   initialMessages,
   chapters,
+  selectedChapterId,
   recentChats,
   memoryItems,
 }: {
   subject: Subject
   initialMessages: ChatMessage[]
   chapters: Chapter[]
+  selectedChapterId?: string
   recentChats: RecentChat[]
   memoryItems: MemoryData["items"]
 }) {
@@ -132,13 +148,20 @@ export function LearnWorkspace({
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const messageSeqRef = useRef(0)
+  const activeChapter = chapters.find((chapter) => chapter.id === selectedChapterId) ?? chapters.find((chapter) => chapter.active) ?? chapters[0]
+
+  useEffect(() => {
+    setMessages(initialMessages)
+    setInput("")
+    setSending(false)
+  }, [initialMessages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, sending])
 
   async function send(text: string) {
-    if (!text.trim()) return
+    if (!text.trim() || sending) return
     const nextMessageId = (prefix: string) => {
       messageSeqRef.current += 1
       return `${prefix}-${Date.now()}-${messageSeqRef.current}`
@@ -152,20 +175,13 @@ export function LearnWorkspace({
     setMessages(nextMessages)
     setInput("")
     setSending(true)
-    const fallbackReply: ChatMessage = cannedReply[text]
-      ? {
-          ...cannedReply[text],
-          id: nextMessageId(cannedReply[text].id),
-        }
-      : {
-          ...fallbackChat(text),
-          id: nextMessageId("a"),
-        }
+    const fallbackReply = subjectFallbackReply(text, subject, nextMessageId("a"))
     const reply = await postJson<ChatMessage>(
       "/api/chat",
       {
         message: text,
         subjectId: subject.id,
+        chapterId: activeChapter?.id,
         history: nextMessages.slice(-8).map((message) => ({
           role: message.role,
           content: message.content,
@@ -198,20 +214,21 @@ export function LearnWorkspace({
               </p>
               <div className="flex flex-col gap-0.5">
                 {chapters.map((c) => (
-                  <button
+                  <Link
                     key={c.id}
+                    href={`/learn?subjectId=${subject.id}&chapterId=${c.id}`}
                     className={cn(
                       "flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
-                      c.active && "bg-accent font-medium text-accent-foreground",
+                      activeChapter?.id === c.id && "bg-accent font-medium text-accent-foreground",
                     )}
                   >
                     <span className="truncate">{c.title}</span>
                     {c.done ? (
                       <span className="text-xs text-muted-foreground">✓</span>
-                    ) : c.active ? (
+                    ) : activeChapter?.id === c.id ? (
                       <ChevronRight className="size-3.5" />
                     ) : null}
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -265,6 +282,16 @@ export function LearnWorkspace({
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} />
             ))}
+            {sending && (
+              <MessageBubble
+                message={{
+                  id: "thinking",
+                  role: "assistant",
+                  kind: "text",
+                  content: `正在结合「${subject.name}」和前文整理回答...`,
+                }}
+              />
+            )}
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
@@ -278,6 +305,7 @@ export function LearnWorkspace({
                   key={q}
                   size="sm"
                   variant="outline"
+                  disabled={sending}
                   onClick={() => send(q)}
                 >
                   {q}
@@ -292,7 +320,7 @@ export function LearnWorkspace({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault()
-                    void send(input)
+                    if (!sending) void send(input)
                   }
                 }}
               />

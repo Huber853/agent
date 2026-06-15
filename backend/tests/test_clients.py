@@ -48,6 +48,84 @@ def test_deepseek_client_posts_openai_compatible_chat_request():
     assert body["messages"][1] == {"role": "assistant", "content": "上一轮回答"}
 
 
+def test_deepseek_client_can_request_json_mode():
+    transport = FakeTransport(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "{\"questions\": []}",
+                    }
+                }
+            ]
+        }
+    )
+    client = DeepSeekClient(
+        api_key="test-key",
+        base_url="https://api.deepseek.com",
+        http_client=httpx.Client(transport=transport),
+    )
+
+    client.chat("系统提示 JSON", "用户问题", json_mode=True)
+
+    body = json.loads(transport.requests[0].content)
+    assert body["response_format"] == {"type": "json_object"}
+
+
+def test_deepseek_client_default_timeout_allows_long_generation():
+    client = DeepSeekClient(api_key="test-key")
+
+    assert client.http_client.timeout.read == 60
+
+
+def test_deepseek_client_uses_reasoning_content_when_content_is_empty():
+    transport = FakeTransport(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "",
+                        "reasoning_content": "模型只返回了推理字段。",
+                    }
+                }
+            ]
+        }
+    )
+    client = DeepSeekClient(
+        api_key="test-key",
+        base_url="https://api.deepseek.com",
+        http_client=httpx.Client(transport=transport),
+    )
+
+    assert client.chat("系统提示", "用户问题") == "模型只返回了推理字段。"
+
+
+def test_deepseek_client_rejects_empty_model_reply():
+    transport = FakeTransport(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "",
+                    }
+                }
+            ]
+        }
+    )
+    client = DeepSeekClient(
+        api_key="test-key",
+        base_url="https://api.deepseek.com",
+        http_client=httpx.Client(transport=transport),
+    )
+
+    try:
+        client.chat("系统提示", "用户问题")
+    except ValueError as error:
+        assert "empty content" in str(error)
+    else:
+        raise AssertionError("Expected empty model replies to raise ValueError")
+
+
 def test_tavily_client_posts_search_request():
     transport = FakeTransport(
         {

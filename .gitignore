@@ -13,6 +13,7 @@ __v0_jsx-dev-runtime.ts
 backend/.env
 backend/.env.local
 backend/.env.*.local
+backend/.runtime/
 .env*.local
 !.env.example
 !backend/.env.example

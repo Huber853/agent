@@ -20,6 +20,9 @@ type AnswerRecord = {
   correct: boolean
 }
 
+const generateCounts = [3, 5, 8]
+const difficultyOptions = ["简单", "中等", "困难"] as const
+
 export function PracticeRunner({
   questions,
   subjectId,
@@ -37,10 +40,11 @@ export function PracticeRunner({
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [generateCount, setGenerateCount] = useState(5)
+  const [generateDifficulty, setGenerateDifficulty] = useState<(typeof difficultyOptions)[number]>("中等")
 
-  const q = questionList[index]
-  const isChoice = q.type === "选择题" || q.type === "判断题"
   const total = questionList.length
+  const q = questionList[index]
 
   async function submit() {
     if (isChoice && !selected) {
@@ -65,6 +69,7 @@ export function PracticeRunner({
       {
         questionId: q.id,
         answer: given,
+        questionContent: q.content,
         expected: q.answer,
         analysis: q.analysis,
         questionType: q.type,
@@ -100,40 +105,106 @@ export function PracticeRunner({
   }
 
   async function generateMore() {
+    if (generating) return
     setGenerating(true)
-    const fallbackQuestions = questionList.map((question) => ({
-      ...question,
-      id: `local-${question.id}-${Date.now()}`,
-    })).slice(0, 3)
-    const result = await postJson<QuestionGenerateResult>(
-      "/api/questions/generate",
-      {
-        subjectId,
-        count: 5,
-        focus: q?.point,
-        existingQuestionIds: questionList.map((question) => question.id),
-      },
-      { questions: fallbackQuestions },
-    )
-    if (result.questions.length === 0) {
-      toast.error("暂时没有生成新题")
-    } else {
-      const nextIndex = questionList.length
-      setQuestionList((prev) => [...prev, ...result.questions])
-      setIndex(nextIndex)
-      setSelected("")
-      setShortText("")
-      setRevealed(false)
-      setResult(null)
-      setFinished(false)
-      toast.success(`已生成 ${result.questions.length} 道新题`)
+    try {
+      const fallbackQuestions = questionList.map((question) => ({
+        ...question,
+        id: `local-${question.id}-${Date.now()}`,
+          difficulty: generateDifficulty,
+      })).slice(0, generateCount)
+      const result = await postJson<QuestionGenerateResult>(
+        "/api/questions/generate",
+        {
+          subjectId,
+          count: generateCount,
+          difficulty: generateDifficulty,
+          focus: q?.point,
+          existingQuestionIds: questionList.map((question) => question.id),
+          existingQuestionContents: questionList.map((question) => question.content),
+        },
+        { questions: fallbackQuestions },
+      )
+      if (result.questions.length === 0) {
+        toast.error("暂时没有生成新题")
+      } else {
+        const nextIndex = questionList.length
+        setQuestionList((prev) => [...prev, ...result.questions])
+        setIndex(nextIndex)
+        setSelected("")
+        setShortText("")
+        setRevealed(false)
+        setResult(null)
+        setFinished(false)
+        toast.success(`已生成 ${result.questions.length} 道${generateDifficulty}新题`)
+      }
+    } finally {
+      setGenerating(false)
     }
-    setGenerating(false)
   }
+
+  if (!q) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">暂无练习题</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              当前科目还没有本地题库。可以直接调用 AI 生成一组新题。
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {generateCounts.map((count) => (
+                <Button
+                  key={count}
+                  type="button"
+                  size="sm"
+                  variant={generateCount === count ? "default" : "outline"}
+                  disabled={generating}
+                  onClick={() => setGenerateCount(count)}
+                >
+                  {count} 题
+                </Button>
+              ))}
+              {difficultyOptions.map((difficulty) => (
+                <Button
+                  key={difficulty}
+                  type="button"
+                  size="sm"
+                  variant={generateDifficulty === difficulty ? "secondary" : "outline"}
+                  disabled={generating}
+                  onClick={() => setGenerateDifficulty(difficulty)}
+                >
+                  {difficulty}
+                </Button>
+              ))}
+            </div>
+            <Button disabled={generating} onClick={() => void generateMore()}>
+              <Sparkles data-icon="inline-start" />
+              {generating ? "生成中" : "AI 生成新题"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const isChoice = q.type === "选择题" || q.type === "判断题"
 
   if (finished) {
     const correctCount = records.filter((r) => r.correct).length
     const rate = Math.round((correctCount / total) * 100)
+    const wrongQuestions = records
+      .filter((record) => !record.correct)
+      .map((record) => questionList.find((question) => question.id === record.questionId))
+      .filter((question): question is Question => Boolean(question))
+    const weakPointNames = Array.from(new Set(wrongQuestions.map((question) => question.point))).slice(0, 3)
+    const subjectName = questionList[0]?.subject ?? "当前科目"
+    const analysisText =
+      wrongQuestions.length === 0
+        ? `本次「${subjectName}」练习全部答对。建议继续提高难度，生成 3-5 道中高难度变式题，重点检查是否能独立说明解题依据。`
+        : `本次「${subjectName}」练习中，主要失分点集中在「${weakPointNames.join("、") || "当前知识点"}」。建议先回看错题解析，把每题改写成“考点 + 关键条件 + 解题步骤”三行笔记，再生成同难度变式题巩固。`
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <Card>
@@ -164,8 +235,7 @@ export function PracticeRunner({
                 <span className="text-sm font-semibold">AI 学习分析</span>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                本次练习集中在「图的最短路径」。你在概念辨析题上仍有失分，建议重点复习 Dijkstra
-                的适用条件与负权边处理。错题已自动加入错题本，明日计划将优先安排相关变式题。
+                {analysisText}
               </p>
             </div>
             <div className="flex gap-3">
@@ -198,9 +268,44 @@ export function PracticeRunner({
         <Progress value={((index + (revealed ? 1 : 0)) / total) * 100} />
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">AI 生成</span>
+          {generateCounts.map((count) => (
+            <Button
+              key={count}
+              type="button"
+              size="sm"
+              variant={generateCount === count ? "default" : "outline"}
+              className="h-7 px-2.5"
+              disabled={generating}
+              onClick={() => setGenerateCount(count)}
+            >
+              {count} 题
+            </Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {difficultyOptions.map((difficulty) => (
+            <Button
+              key={difficulty}
+              type="button"
+              size="sm"
+              variant={generateDifficulty === difficulty ? "secondary" : "outline"}
+              className="h-7 px-2.5"
+              disabled={generating}
+              onClick={() => setGenerateDifficulty(difficulty)}
+            >
+              {difficulty}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
+            {q.id.startsWith("ai-") && <Badge>AI 新题</Badge>}
             <Badge variant="secondary">{q.type}</Badge>
             <Badge variant="outline">{q.difficulty}</Badge>
             <Badge variant="outline">{q.point}</Badge>

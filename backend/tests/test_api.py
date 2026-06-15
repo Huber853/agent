@@ -4,7 +4,10 @@ os.environ["BACKEND_SKIP_ENV_FILE"] = "1"
 
 from fastapi.testclient import TestClient
 
+import backend.main as main_module
+import backend.runtime_store as runtime_store
 from backend.main import app
+from backend.settings import Settings
 
 
 client = TestClient(app)
@@ -39,6 +42,56 @@ def test_missing_subject_returns_404():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Subject not found"
+
+
+def test_create_subject_persists_generated_profile(monkeypatch, tmp_path):
+    store_path = tmp_path / "subjects.json"
+    monkeypatch.setattr(runtime_store, "STORE_PATH", store_path)
+
+    class FakeTool:
+        def run(self, **kwargs):
+            return {
+                "scope": "操作系统概述、进程管理、内存管理",
+                "chapters": [
+                    {"id": "os-ch1", "title": "第 1 章 操作系统概述", "done": False, "active": True, "items": ["基本概念"]},
+                ],
+                "knowledgePoints": [
+                    {"id": "os-kp1", "title": "进程与线程", "level": "必会", "mastery": 50, "subjectId": ""},
+                ],
+                "weakPoints": [],
+                "recentChats": [],
+                "conversation": [],
+            }
+
+    monkeypatch.setattr(main_module, "available_tools", lambda ctx: {"subject_profile_generator": FakeTool()})
+
+    response = client.post(
+        "/api/subjects",
+        json={
+            "name": "操作系统",
+            "examDate": "2026-07-01",
+            "dailyMinutes": 70,
+            "base": "一般",
+            "goal": "高分",
+            "scope": "进程管理、内存管理",
+            "questionTypes": ["选择题", "简答题"],
+        },
+    )
+
+    assert response.status_code == 200
+    subject = response.json()["subject"]
+    assert subject["name"] == "操作系统"
+    assert client.get(f"/api/subjects/{subject['id']}").json()["name"] == "操作系统"
+    assert client.get(f"/api/chapters?subjectId={subject['id']}").json()[0]["title"] == "第 1 章 操作系统概述"
+
+
+def test_conversation_can_be_scoped_to_chapter():
+    response = client.get("/api/conversation?subjectId=calculus&chapterId=cal-ch3")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "第 3 章 二重积分" in data[0]["content"]
+    assert "独立对话" in data[1]["content"]
 
 
 def test_dashboard_supporting_data_endpoints():
@@ -104,6 +157,224 @@ def test_generated_questions_fallback_and_submit_generated_question():
 
     assert submit_response.status_code == 200
     assert submit_response.json()["correct"] is True
+
+
+def test_generated_questions_passes_requested_difficulty_to_model(monkeypatch):
+    captured = {}
+
+    class FakeDeepSeekClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def chat(self, system_prompt, user_message, max_tokens=1200, history=None, json_mode=False):
+            captured["user_message"] = user_message
+            return """
+            [
+              {
+                "id": "model-1",
+                "type": "选择题",
+                "difficulty": "简单",
+                "point": "重积分",
+                "subject": "高等数学（下）",
+                "content": "二重积分换序时首先应判断什么？",
+                "options": [{"key": "A", "text": "积分区域"}, {"key": "B", "text": "被积函数符号"}],
+                "answer": "A",
+                "analysis": "换序必须先画出或描述积分区域，再重新确定上下限。"
+              }
+            ]
+            """
+
+    monkeypatch.setattr(main_module, "settings", Settings(deepseek_api_key="test-key"))
+    monkeypatch.setattr(main_module, "DeepSeekClient", FakeDeepSeekClient)
+
+    response = client.post(
+        "/api/questions/generate",
+        json={
+            "subjectId": "calculus",
+            "count": 1,
+            "difficulty": "困难",
+            "existingQuestionIds": [],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["questions"][0]["difficulty"] == "困难"
+    assert "目标难度：困难" in captured["user_message"]
+
+
+def test_generated_questions_normalizes_model_object_reply(monkeypatch):
+    class FakeDeepSeekClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def chat(self, system_prompt, user_message, max_tokens=1200, history=None, json_mode=False):
+            return """
+            ```json
+            {
+              "id": "math_001",
+              "type": "single",
+              "difficulty": 3,
+              "point": 5,
+              "subject": "高等数学（下）",
+              "content": "求函数 f(x,y)=x^3+y^3-3xy 的极值点。",
+              "options": [{"key": "A", "text": "(0,0)是极大值点"}, {"key": "C", "text": "(1,1)是极小值点"}],
+              "answer": "C",
+              "analysis": "先求驻点，再用二阶判别法。"
+            }
+            ```
+            """
+
+    monkeypatch.setattr(main_module, "settings", Settings(deepseek_api_key="test-key"))
+    monkeypatch.setattr(main_module, "DeepSeekClient", FakeDeepSeekClient)
+
+    response = client.post(
+        "/api/questions/generate",
+        json={
+            "subjectId": "calculus",
+            "count": 1,
+            "difficulty": "困难",
+            "focus": "重积分换元",
+            "existingQuestionIds": [],
+        },
+    )
+
+    assert response.status_code == 200
+    question = response.json()["questions"][0]
+    assert question["id"].startswith("ai-calculus-")
+    assert question["type"] == "选择题"
+    assert question["difficulty"] == "困难"
+    assert question["point"] == "5"
+
+
+def test_generated_questions_retries_after_malformed_model_reply(monkeypatch):
+    calls = {"count": 0}
+
+    class FakeDeepSeekClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def chat(self, system_prompt, user_message, max_tokens=1200, history=None, json_mode=False):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return "这不是 JSON"
+            return """
+            [
+              {
+                "id": "model-1",
+                "type": "选择题",
+                "difficulty": "困难",
+                "point": "重积分换元",
+                "subject": "高等数学（下）",
+                "content": "极坐标换元时面积元是什么？",
+                "options": [{"key": "A", "text": "drdθ"}, {"key": "B", "text": "rdrdθ"}],
+                "answer": "B",
+                "analysis": "极坐标面积元需要乘雅可比因子 r。"
+              }
+            ]
+            """
+
+    monkeypatch.setattr(main_module, "settings", Settings(deepseek_api_key="test-key"))
+    monkeypatch.setattr(main_module, "DeepSeekClient", FakeDeepSeekClient)
+
+    response = client.post(
+        "/api/questions/generate",
+        json={
+            "subjectId": "calculus",
+            "count": 1,
+            "difficulty": "困难",
+            "focus": "重积分换元",
+            "existingQuestionIds": [],
+        },
+    )
+
+    assert response.status_code == 200
+    assert calls["count"] == 2
+    assert response.json()["questions"][0]["id"].startswith("ai-calculus-")
+
+
+def test_generated_questions_filters_existing_content(monkeypatch):
+    class FakeDeepSeekClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def chat(self, system_prompt, user_message, max_tokens=1200, history=None, json_mode=False):
+            return """
+            {
+              "questions": [
+                {
+                  "id": "dup",
+                  "type": "选择题",
+                  "difficulty": "中等",
+                  "point": "重积分",
+                  "subject": "高等数学（下）",
+                  "content": "已经出现过的题干",
+                  "options": [{"key": "A", "text": "A"}, {"key": "B", "text": "B"}],
+                  "answer": "A",
+                  "analysis": "重复题"
+                },
+                {
+                  "id": "new",
+                  "type": "选择题",
+                  "difficulty": "中等",
+                  "point": "重积分",
+                  "subject": "高等数学（下）",
+                  "content": "新的重积分题干",
+                  "options": [{"key": "A", "text": "A"}, {"key": "B", "text": "B"}],
+                  "answer": "A",
+                  "analysis": "新题"
+                }
+              ]
+            }
+            """
+
+    monkeypatch.setattr(main_module, "settings", Settings(deepseek_api_key="test-key"))
+    monkeypatch.setattr(main_module, "DeepSeekClient", FakeDeepSeekClient)
+
+    response = client.post(
+        "/api/questions/generate",
+        json={
+            "subjectId": "calculus",
+            "count": 1,
+            "existingQuestionContents": ["已经出现过的题干"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["questions"][0]["content"] == "新的重积分题干"
+
+
+def test_practice_submit_uses_model_to_grade_subjective_generated_answers(monkeypatch):
+    class FakeDeepSeekClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def chat(self, system_prompt, user_message, max_tokens=1200, history=None, json_mode=False):
+            return """
+            {
+              "correct": false,
+              "expected": "应说明先确定积分区域，再根据新的积分次序重写上下限。",
+              "analysis": "你的回答太笼统，缺少积分区域和上下限重写两个评分点。"
+            }
+            """
+
+    monkeypatch.setattr(main_module, "settings", Settings(deepseek_api_key="test-key"))
+    monkeypatch.setattr(main_module, "DeepSeekClient", FakeDeepSeekClient)
+
+    response = client.post(
+        "/api/practice/submit",
+        json={
+            "questionId": "ai-subjective",
+            "answer": "我觉得主要就是把积分顺序换一下，然后算出来。",
+            "expected": "应说明先确定积分区域，再根据新的积分次序重写上下限。",
+            "analysis": "参考解析",
+            "questionType": "简答题",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["correct"] is False
+    assert "缺少积分区域" in data["analysis"]
 
 
 def test_diagnosis_answer_returns_mock_judgement():

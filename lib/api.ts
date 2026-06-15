@@ -82,6 +82,23 @@ export type DiagnosisResult = {
   nextSuggestion: string
 }
 
+export type SubjectCreateInput = {
+  name: string
+  examDate: string
+  dailyMinutes: number
+  base: string
+  goal: string
+  scope: string
+  questionTypes: string[]
+}
+
+export type SubjectCreateResult = {
+  subject: Subject
+  chapters: Chapter[]
+  knowledgePoints: KnowledgePoint[]
+  weakPoints: KnowledgePoint[]
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
 
@@ -113,6 +130,18 @@ export async function postJson<T>(
   } catch {
     return fallback
   }
+}
+
+async function postJsonStrict<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`)
+  }
+  return (await response.json()) as T
 }
 
 export const api = {
@@ -150,6 +179,15 @@ export const api = {
       subjectId ? `/api/conversation?subjectId=${subjectId}` : "/api/conversation",
       subjectId ? (conversationBySubject[subjectId] ?? conversation) : conversation,
     ),
+  conversationForChapter: (subjectId?: string, chapterId?: string) => {
+    const params = new URLSearchParams()
+    if (subjectId) params.set("subjectId", subjectId)
+    if (chapterId) params.set("chapterId", chapterId)
+    return getJson<ChatMessage[]>(
+      `/api/conversation?${params.toString()}`,
+      subjectId ? (conversationBySubject[subjectId] ?? conversation) : conversation,
+    )
+  },
   questions: (subjectId?: string) => {
     const subjectName = subjectId ? getMockSubject(subjectId).name : undefined
     return getJson<Question[]>(
@@ -174,6 +212,8 @@ export const api = {
       sources: researchSources,
       points: researchPoints,
     }),
+  createSubject: (payload: SubjectCreateInput) =>
+    postJsonStrict<SubjectCreateResult>("/api/subjects", payload),
 }
 
 export function fallbackChat(message: string): ChatMessage {

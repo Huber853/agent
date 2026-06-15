@@ -12,7 +12,7 @@ class DeepSeekClient:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.model = model
-        self.http_client = http_client or httpx.Client(timeout=20)
+        self.http_client = http_client or httpx.Client(timeout=60)
 
     def chat(
         self,
@@ -20,6 +20,7 @@ class DeepSeekClient:
         user_message: str,
         max_tokens: int = 1200,
         history: list[dict[str, str]] | None = None,
+        json_mode: bool = False,
     ) -> str:
         messages = [{"role": "system", "content": system_prompt}]
         if history:
@@ -32,19 +33,26 @@ class DeepSeekClient:
                 if message.get("role") in {"user", "assistant"} and message.get("content")
             )
         messages.append({"role": "user", "content": user_message})
+        body = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": max_tokens,
+        }
+        if json_mode:
+            body["response_format"] = {"type": "json_object"}
         response = self.http_client.post(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": 0.3,
-                "max_tokens": max_tokens,
-            },
+            json=body,
         )
         response.raise_for_status()
         data = response.json()
-        return data["choices"][0]["message"]["content"]
+        message = data["choices"][0]["message"]
+        content = message.get("content") or message.get("reasoning_content") or ""
+        if not content.strip():
+            raise ValueError("DeepSeek returned empty content")
+        return content
 
 
 class TavilyClient:
